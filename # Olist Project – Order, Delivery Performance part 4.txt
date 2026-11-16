@@ -1,0 +1,550 @@
+# Olist Project – Order, Delivery Performance & Customer Satisfaction Analysis
+
+This is one of the most important parts of your project. You have combined three business areas:
+
+1. **Order Analysis** – How many orders were placed, delivered, cancelled or not delivered?
+2. **Delivery Performance** – How many orders were late, and how many days were they delayed?
+3. **Customer Satisfaction** – How did customers rate their experience?
+
+Below are notes explaining your code, the Pandas concepts you used, and some corrections to make before using the results in your project.
+
+---
+
+# 1. Order Analysis
+
+## Objective
+
+Understand the overall order performance of Olist.
+
+### Load the dataset
+
+```python
+orders = pd.read_csv(DATA_PATH / "olist_orders_dataset.csv")
+```
+
+Loads the orders CSV file into a DataFrame called `orders`.
+
+```python
+print(orders)
+print(orders.shape)
+print(orders.columns.tolist())
+```
+
+| Code | Purpose |
+|---|---|
+| `print(orders)` | Displays the dataset |
+| `shape` | Returns rows and columns |
+| `columns.tolist()` | Displays all column names as a list |
+
+### Calculate order KPIs
+
+KPI means **Key Performance Indicator**. It is a measurement used to understand business performance.
+
+```python
+len(orders)
+```
+Counts total order records.
+
+```python
+len(orders[orders['order_status'] == 'canceled'])
+```
+Counts cancelled orders.
+
+```python
+len(orders[orders['order_status'] == 'delivered'])
+```
+Counts delivered orders.
+
+```python
+len(orders[orders['order_status'] == 'shipped'])
+```
+Counts shipped orders.
+
+### Understand filtering
+
+For example:
+
+```python
+orders[orders['order_status'] == 'delivered']
+```
+
+This filters the dataset and keeps only rows where the order status is delivered.
+
+The `==` operator checks whether two values are equal.
+
+### Order status distribution
+
+```python
+orders['order_status'].value_counts(normalize=True)
+```
+
+- `value_counts()` counts how often each status appears.
+- `normalize=True` converts those counts into proportions.
+
+Example:
+
+| Status | Proportion |
+|---|---:|
+| Delivered | 0.97 |
+| Shipped | 0.01 |
+| Cancelled | 0.006 |
+
+To convert a proportion into a percentage, multiply by 100.
+
+### Cancellation rate
+
+```python
+canceled_orders_rate = (
+    len(orders[orders['order_status'] == 'canceled']) / len(orders)
+) * 100
+```
+
+Formula:
+
+**Cancellation Rate = (Cancelled Orders / Total Orders) × 100**
+
+This tells us what percentage of all orders were cancelled.
+
+### Non-delivered orders
+
+Your code:
+
+```python
+non_delivered_orders_rate = (
+    len(orders[orders['order_status'] != 'delivered'])
+    - len(orders[orders['order_status'] == 'canceled'])
+)
+```
+
+There is an important naming and calculation issue here.
+
+This calculation gives the **number of non-delivered orders excluding cancelled orders**. It does not calculate a rate yet.
+
+You later divide by total orders and multiply by 100, which correctly calculates the percentage.
+
+A clearer version is:
+
+```python
+non_delivered_orders = len(
+    orders[orders['order_status'].isin(
+        ['shipped', 'unavailable', 'invoiced', 'processing', 'created', 'approved']
+    )]
+)
+
+non_delivered_orders_rate = non_delivered_orders / len(orders) * 100
+```
+
+This specifically counts orders in the listed statuses.
+
+**Remember:** Non-delivered orders and cancelled orders are different categories.
+
+---
+
+# 2. Delivery Performance Analysis
+
+## Objective
+
+Find out whether Olist delivered orders before, on or after the estimated delivery date.
+
+### A. Convert date columns
+
+```python
+orders['order_purchase_timestamp'] = pd.to_datetime(
+    orders['order_purchase_timestamp'],
+    format='%Y-%m-%d %H:%M:%S'
+)
+```
+
+You use `pd.to_datetime()` to convert text into a proper date/time format.
+
+Why?
+
+Because Python cannot reliably perform date calculations on ordinary text.
+
+You also convert:
+
+- `order_estimated_delivery_date`
+- `order_delivered_customer_date`
+
+**Important improvement:** You convert the last two columns twice. You only need one conversion for each column. Use `errors="coerce"` if invalid dates should become missing values (`NaT`).
+
+### B. Calculate delivery delay
+
+```python
+delivery_delay = (
+    orders["order_delivered_customer_date"]
+    - orders["order_estimated_delivery_date"]
+)
+
+orders["delivery_delay_days"] = delivery_delay.dt.days
+```
+
+This is an important calculation.
+
+**Formula:**
+
+Delivery Delay = Actual Delivery Date − Estimated Delivery Date
+
+| Result | Meaning |
+|---|---|
+| Positive number | Delivered late |
+| Zero | Delivered on estimated date |
+| Negative number | Delivered early |
+| NaN | Delivery date is missing |
+
+`.dt.days` extracts the number of days from the date difference.
+
+Example:
+
+Estimated date: 10 November  
+Actual date: 13 November  
+Delay: 3 days.
+
+### C. Categorise deliveries
+
+```python
+late_deliveries = orders[orders['delivery_delay_days'] > 0]
+```
+
+Selects deliveries that were late.
+
+```python
+ontime_deliveries = orders[orders['delivery_delay_days'] <= 0]
+```
+
+Selects deliveries that were early or on time.
+
+```python
+valid_delivery = orders[orders['delivery_delay_days'].notnull()]
+```
+
+Selects records where delivery delay is available.
+
+`notnull()` identifies values that are not missing.
+
+**Why is this important?**
+
+Orders without an actual delivery date cannot be classified as early, on time or late.
+
+### D. Late delivery rate
+
+```python
+late_delivery_rate = len(late_deliveries) / len(valid_delivery) * 100
+```
+
+Formula:
+
+**Late Delivery Rate = (Late Deliveries / Valid Deliveries) × 100**
+
+### E. Early/on-time delivery rate
+
+```python
+ontime_delivery_rate = len(ontime_deliveries) / len(valid_delivery) * 100
+```
+
+Formula:
+
+**Early/On-Time Rate = (Early or On-Time Deliveries / Valid Deliveries) × 100**
+
+### F. Average delay among late orders
+
+```python
+average_delivery_delay = late_deliveries['delivery_delay_days'].mean()
+```
+
+`mean()` calculates the average.
+
+Here, you are calculating the average delay **only for late deliveries**, not for all deliveries.
+
+### G. Maximum and minimum delay
+
+```python
+late_deliveries['delivery_delay_days'].max()
+late_deliveries['delivery_delay_days'].min()
+```
+
+- `max()` finds the highest delay.
+- `min()` finds the smallest delay.
+
+### H. Find the five worst delayed orders
+
+```python
+worst_delivery = late_deliveries.nlargest(
+    5, "delivery_delay_days"
+)
+```
+
+`nlargest(5, ...)` returns the five rows with the highest delay.
+
+You then display:
+
+```python
+worst_delivery[
+    ["order_id", "order_status", "delivery_delay_days"]
+]
+```
+
+This helps identify the most delayed orders.
+
+---
+
+# 3. Connect Delivery Performance With Customer Reviews
+
+This is a valuable business analysis because it connects operational performance with customer experience.
+
+### A. Load customer reviews
+
+```python
+reviews = pd.read_csv(
+    DATA_PATH / "olist_order_reviews_dataset.csv"
+)
+```
+
+Loads customer review data.
+
+Important columns:
+
+| Column | Meaning |
+|---|---|
+| `order_id` | Order identifier |
+| `review_score` | Customer rating from 1 to 5 |
+| `review_comment_message` | Customer's written feedback |
+
+### B. Connect delayed orders with reviews
+
+```python
+worst_delivery_reviews = worst_delivery.merge(
+    reviews[["order_id", "review_score", "review_comment_message"]],
+    on="order_id",
+    how="left"
+)
+```
+
+This is called a **Merge or Join**.
+
+It connects two datasets using their common column: `order_id`.
+
+- `on="order_id"` means match records using order ID.
+- `how="left"` keeps every order from the left dataset (`worst_delivery`).
+- Review information is added wherever a matching order is found.
+
+This lets you investigate whether the most delayed orders received low customer ratings or negative comments.
+
+---
+
+# 4. Customer Satisfaction Analysis
+
+## Objective
+
+Understand how customers rated their shopping experience.
+
+### A. Explore review data
+
+```python
+print(data.head())
+print(data.columns)
+print(data.dtypes)
+```
+
+These commands display the first rows, column names and data types.
+
+### B. Count customer ratings
+
+```python
+data["review_score"].value_counts()
+```
+
+Counts how many times each rating appears.
+
+For example:
+
+| Rating | Meaning |
+|---|---|
+| 1 | Very poor |
+| 2 | Poor |
+| 3 | Average |
+| 4 | Good |
+| 5 | Excellent |
+
+### C. Calculate average rating
+
+```python
+avearge_rating = data["review_score"].mean()
+```
+
+`mean()` calculates the average customer rating.
+
+Your print statement:
+
+```python
+print("average customer rating", round(avearge_rating), 2, "%")
+```
+
+has a formatting problem. Use:
+
+```python
+print("Average customer rating:", round(avearge_rating, 2), "/ 5")
+```
+
+A rating out of 5 is not a percentage.
+
+### D. Identify dissatisfied customers
+
+```python
+low_customer_rating = data["review_score"] <= 2
+print(low_customer_rating.sum())
+```
+
+This identifies reviews with ratings of 1 or 2.
+
+- `<= 2` checks whether a rating is less than or equal to 2.
+- `sum()` counts how many values are `True`.
+
+### E. Identify satisfied customers
+
+Your code:
+
+```python
+statisfy_range_customer = data["review_score"] >= 3
+```
+
+This includes ratings 3, 4 and 5.
+
+However, a 3-star rating is usually considered neutral, not satisfied.
+
+For a clearer business classification, use:
+
+| Rating | Category |
+|---|---|
+| 1–2 | Dissatisfied |
+| 3 | Neutral |
+| 4–5 | Satisfied |
+
+This distinction is important when presenting results to recruiters.
+
+### F. Calculate dissatisfaction rate
+
+```python
+low_customer_rating.sum() / len(data) * 100
+```
+
+Formula:
+
+**Dissatisfaction Rate = (Reviews with 1–2 Stars / Total Reviews) × 100**
+
+### G. Count unique orders
+
+```python
+data["order_id"].nunique()
+```
+
+Counts how many different order IDs exist in the reviews dataset.
+
+### H. Identify repeated order IDs
+
+```python
+data["order_id"].duplicated().sum()
+```
+
+Counts repeated occurrences of order IDs after their first occurrence.
+
+Important distinction:
+
+- `duplicated().sum()` counts extra repeated rows.
+- `len(order_counts[order_counts > 1])` counts how many distinct order IDs appear more than once.
+
+### I. Count reviews per order
+
+```python
+order_counts = data["order_id"].value_counts()
+```
+
+Counts how many review records each order has.
+
+```python
+order_counts[order_counts == 1]
+```
+
+Finds orders with exactly one review.
+
+```python
+len(order_counts[order_counts > 1])
+```
+
+Counts the number of distinct orders with multiple reviews.
+
+---
+
+# 5. Important Pandas Functions Learned
+
+| Function | What it does |
+|---|---|
+| `read_csv()` | Loads CSV files |
+| `len()` | Counts rows |
+| `shape` | Returns rows and columns |
+| `columns.tolist()` | Returns column names as a list |
+| `value_counts()` | Counts occurrences |
+| `normalize=True` | Returns proportions |
+| `pd.to_datetime()` | Converts values to dates |
+| `.dt.days` | Extracts days |
+| `notnull()` | Identifies non-missing values |
+| `mean()` | Calculates average |
+| `max()` | Finds maximum |
+| `min()` | Finds minimum |
+| `nlargest()` | Finds largest values |
+| `merge()` | Combines datasets |
+| `nunique()` | Counts unique values |
+| `duplicated()` | Identifies duplicate rows/values |
+| `sum()` | Adds values or counts True values |
+
+---
+
+# 6. Important Corrections Before Finalising Your Analysis
+
+There are four things to fix:
+
+**1. Remove repeated date conversions.**  
+You are converting delivery and estimated dates twice.
+
+**2. Fix your customer satisfaction categories.**  
+Use 1–2 dissatisfied, 3 neutral and 4–5 satisfied.
+
+**3. Fix the average rating output.**  
+It is a rating out of 5, not a percentage.
+
+**4. Be careful with repeated reviews.**  
+Some orders have multiple review records. If you compare delivery delays with customer satisfaction, calculate the average rating per order first. Otherwise, some orders may receive more weight than others.
+
+Also, your current code does not yet calculate the relationship between delivery delay and average customer rating. It only joins reviews to the five worst-delayed orders. That broader comparison is a separate analysis.
+
+---
+
+# 7. Business Insights You Can Present
+
+Once you have verified the results, your project can answer these questions:
+
+| Business question | Analysis |
+|---|---|
+| How many orders were cancelled? | Order status analysis |
+| What percentage of orders were delivered? | Order KPI |
+| What percentage of deliveries were late? | Delivery performance |
+| How many days late were orders on average? | Average delay |
+| Which orders experienced the worst delays? | Top five delayed orders |
+| How satisfied were customers? | Review analysis |
+| Did late deliveries receive lower ratings? | Delivery vs satisfaction analysis |
+
+**Important:** These are questions your analysis can answer. Don't claim that late deliveries caused lower ratings unless the evidence supports that conclusion.
+
+---
+
+## 8. Test Your Understanding
+
+Before moving to the final delivery-versus-satisfaction analysis, answer these five questions in your own words:
+
+1. What is the difference between `value_counts()` and `nunique()`?
+2. Why do we use `pd.to_datetime()`?
+3. If delivery delay is `-4`, what does it mean?
+4. Why do we use `merge()` with `order_id`?
+5. Why should a 3-star review be separated from satisfied customers?
+
+I'll check your answers and help you correct any mistakes.

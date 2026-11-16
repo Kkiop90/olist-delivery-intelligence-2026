@@ -1,0 +1,262 @@
+Olist Project – Delivery Performance vs Customer Satisfaction Analysis
+This is the most important analysis in your Olist project because you are connecting two business areas:
+- Operations: How well does Olist deliver orders?
+- Customer Experience: How do customers rate their orders?
+Your objective is to investigate whether late deliveries are associated with lower customer ratings.
+
+Below are notes explaining your code step by step.
+1. Objective
+You want to answer this business question:
+
+Do customers who receive late deliveries give lower ratings compared to customers who receive early or on-time deliveries?
+
+To answer this, you combine the orders dataset with the reviews dataset.
+2. Load the Datasets
+orders = pd.read_csv(DATA_PATH / "olist_orders_dataset.csv")reviews = pd.read_csv(DATA_PATH / "olist_order_reviews_dataset.csv")
+
+
+You load two datasets:
+Dataset	Information
+Orders	Order status, purchase date and delivery dates
+Reviews	Customer ratings and comments
+
+
+You use pd.read_csv() to load CSV files into Pandas DataFrames.
+Explore the datasets
+print(orders.head())print(reviews.head())print(orders.columns)print(reviews.columns)
+
+
+- head() displays the first five rows.
+- columns displays the column names.
+print(orders.shape)print(reviews.shape)
+
+
+shape returns the number of rows and columns.
+3. Convert Dates into DateTime Format
+orders['order_purchase_timestamp'] = pd.to_datetime(    orders['order_purchase_timestamp'],    format='%Y-%m-%d %H:%M:%S')
+
+
+You convert the purchase timestamp from text into a proper date/time format.
+
+You do the same for estimated and actual delivery dates.
+
+Why?
+
+Because Pandas can subtract dates only when they are in a date/time format.
+Important correction
+You are converting the estimated and actual delivery dates twice.
+
+You can remove the duplicate conversions and use:
+orders["order_delivered_customer_date"] = pd.to_datetime(    orders["order_delivered_customer_date"], errors="coerce")orders["order_estimated_delivery_date"] = pd.to_datetime(    orders["order_estimated_delivery_date"], errors="coerce")
+
+
+errors="coerce" converts invalid or missing dates into NaT (Not a Time).
+4. Calculate Delivery Delay
+delivery_delay = (    orders["order_delivered_customer_date"]    - orders["order_estimated_delivery_date"])orders["delivery_delay_days"] = delivery_delay.dt.days
+
+
+Formula
+Delivery Delay = Actual Delivery Date − Estimated Delivery Date
+
+Example:
+Estimated Date	Actual Date	Delay
+10 November	13 November	3 days
+10 November	10 November	0 days
+10 November	7 November	-3 days
+
+
+Interpretation:
+- Positive value = Late delivery.
+- Zero = On-time delivery.
+- Negative value = Early delivery.
+- Missing value = Delivery date unavailable.
+.dt.days extracts the number of days from the date difference.
+5. Select Required Columns
+delivery_data = orders[["order_id", "delivery_delay_days"]]reviews_data = reviews[["order_id", "review_score"]]
+
+
+You select only the columns needed for your analysis.
+Dataset	Selected columns
+Delivery	order_id, delivery_delay_days
+Reviews	order_id, review_score
+
+
+This makes your analysis simpler and avoids carrying unnecessary columns.
+6. Merge Both Datasets
+delivery_reviews = delivery_data.merge(    reviews_data,    on="order_id")
+
+
+This is called merging or joining datasets.
+
+You connect two datasets using their common column: order_id.
+
+Example:
+
+Delivery dataset
+order_id	delay
+A101	5
+A102	-2
+
+
+Review dataset
+order_id	rating
+A101	1
+A102	5
+
+
+After merging
+order_id	delay	rating
+A101	5	1
+A102	-2	5
+
+
+Now you can study delivery performance alongside customer ratings.
+
+By default, merge() uses an inner join when you don't specify how. It keeps matching order IDs from both datasets.
+7. Check Missing Values
+print(delivery_reviews.notna().sum())
+
+
+- notna() identifies values that are not missing.
+- sum() counts the available values in each column.
+You then filter records with available delivery delays:
+valid_delivery_review = delivery_reviews[    delivery_reviews["delivery_delay_days"].notna()].copy()
+
+
+This keeps records where the delivery delay is available.
+
+.copy() creates a separate copy of the filtered data.
+
+Why is this important?
+
+You cannot calculate delivery delay for orders that do not have an actual delivery date.
+8. Calculate Average Customer Rating Per Order
+order_reviews = reviews.groupby("order_id").agg(    average_rating=("review_score", "mean"),    review_count=("review_score", "count")).reset_index()
+
+
+This is one of the most important Pandas concepts in your project.
+
+Let's understand each function.
+Function	Meaning
+groupby()	Groups records with the same order ID
+agg()	Performs calculations on grouped data
+mean()	Calculates average rating
+count()	Counts review records
+reset_index()	Converts the grouped order ID back into a regular column
+
+
+Why calculate average rating per order?
+Some orders have multiple review records.
+
+If you compare all review records directly, an order with multiple reviews could receive more weight.
+
+Calculating one average rating per order makes the comparison fairer.
+9. Merge Delivery Data With Average Ratings
+final_data = delivery_data.merge(    order_reviews[["order_id", "average_rating", "review_count"]],    on="order_id",    how="left")
+
+
+This creates your final analysis dataset.
+
+You use how="left" because you want to keep all orders from delivery_data, even if some orders do not have a customer review.
+
+Your resulting dataset contains:
+Column	Meaning
+order_id	Unique order identifier
+delivery_delay_days	Delivery delay
+average_rating	Average customer rating
+review_count	Number of reviews for that order
+
+
+10. Remove Missing Delivery Dates
+final_data = final_data.dropna(    subset=["delivery_delay_days"]).copy()
+
+
+dropna() removes rows with missing values.
+
+Here, you only remove rows where delivery delay is missing.
+
+This ensures that every remaining order can be classified as early, on-time or late.
+
+One more improvement: Before calculating average ratings, also exclude orders without a rating. Otherwise, the delivery groups may have different numbers of orders and reviews.
+11. Categorise Delivery Performance
+final_data["delivery_category"] = (    final_data["delivery_delay_days"].gt(0).map({        True: "late",        False: "Early/on time"    }))
+
+
+Let's break this down.
+.gt(0)
+gt means greater than.
+
+It checks whether delivery delay is greater than zero.
+
+Example:
+Delay	Result
+5	True
+0	False
+-3	False
+
+
+.map()
+map() replaces True and False with meaningful labels.
+Boolean	Category
+True	Late
+False	Early/on time
+
+
+This makes your data easier to understand in Power BI.
+12. Compare Average Ratings by Delivery Category
+rating_comparison = final_data.groupby("delivery_category").agg(    total_orders=("order_id", "count"),    average_rating=("average_rating", "mean")).reset_index()
+
+
+This is the final calculation.
+
+You group orders into two categories:
+- Late
+- Early/on-time
+Then calculate:
+
+Total Orders: Number of orders in each category.
+
+Average Rating: Average customer rating in each category.
+
+Your output will look something like this:
+Delivery Category	Total Orders	Average Rating
+Late	Example	Example
+Early/on-time	Example	Example
+
+
+These are example values, not your actual results.
+13. Important Improvement to Your Final Code
+Before grouping, I recommend using this small correction:
+analysis_data = final_data.dropna(    subset=["delivery_delay_days", "average_rating"]).copy()
+
+
+Then create the delivery category and calculate the comparison using analysis_data instead of final_data.
+
+Why?
+
+Because an order without a customer rating should not be included in the average rating calculation.
+
+Also, your current final_data may contain multiple rows for an order if that order has multiple review records in the original review dataset. Your grouped order_reviews table avoids that issue by creating one row per order.
+14. Business Understanding
+Your analysis can help a company understand:
+1. Whether late deliveries are associated with lower customer ratings.
+2. Whether delivery performance is connected with customer experience.
+3. How much attention should be given to delivery operations.
+4. Whether improving delivery reliability could be worth investigating as a customer satisfaction strategy.
+Remember: Correlation does not prove causation. Your analysis can show an association, but it cannot prove that delivery delays caused lower ratings.
+15. Python Concepts You Have Learned
+You have now practised:
+Concept	Function
+Data loading	pd.read_csv()
+Data exploration	head(), shape, columns
+Date conversion	pd.to_datetime()
+Date calculation	Date subtraction, .dt.days
+Filtering	Conditions such as > 0
+Missing value handling	notna(), dropna()
+Dataset joining	merge()
+Grouping	groupby()
+Aggregation	agg()
+Average	mean()
+Counting	count()
+Data categorisation	map()
+Index management	reset_index()

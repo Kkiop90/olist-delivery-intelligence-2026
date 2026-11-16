@@ -1,0 +1,241 @@
+# Olist Project – Customer Repeat Purchase Analysis Using Pandas
+
+## 1. Objective
+
+The objective of this analysis is to identify how many customers placed multiple orders in the Olist dataset.
+
+We will calculate:
+
+1. Total customer records.
+2. Total unique customers.
+3. Number of repeat customers.
+4. Records belonging to repeat customers.
+5. Repeat customer rate.
+6. Top 10 repeat customers.
+
+This analysis helps us understand customer retention and repeat purchasing behaviour.
+
+---
+
+## 2. Explanation of the Code
+
+### A. Import Libraries and Load Data
+
+```python
+import pandas as pd
+from pathlib import Path as path
+
+datapath = path("data/raw")
+customer = pd.read_csv(datapath / "olist_customers_dataset.csv")
+```
+
+- `pandas` is used for data analysis.
+- `Path` helps us locate files and folders.
+- `read_csv()` loads the customer CSV file.
+- `customer` stores the customer dataset as a DataFrame.
+
+### B. Count Total Customer Records
+
+```python
+print("Total number of customers:")
+print(len(customer))
+```
+
+`len()` counts the total number of rows in the dataset.
+
+**Important:** These are customer records, not necessarily unique customers.
+
+### C. Count Orders/Records Per Actual Customer
+
+```python
+customer_counts = customer["customer_unique_id"].value_counts()
+```
+
+Let's understand this:
+
+- `customer_unique_id` identifies an actual customer across their orders.
+- `value_counts()` counts how many times each customer ID appears.
+
+Example:
+
+| customer_unique_id | Count |
+|---|---:|
+| Customer A | 3 |
+| Customer B | 1 |
+| Customer C | 2 |
+| Customer D | 1 |
+
+This means Customer A appears three times, while Customer B appears once.
+
+### D. Identify Repeat Customers
+
+```python
+repeat_customers = customer_counts[customer_counts > 1]
+```
+
+This is called **filtering**.
+
+- `customer_counts > 1` checks which customers appear more than once.
+- It returns `True` for repeat customers.
+- The filter keeps only those customers.
+
+Example:
+
+| Customer | Count |
+|---|---:|
+| Customer A | 3 |
+| Customer C | 2 |
+
+Only customers appearing more than once remain.
+
+### E. Calculate Total Unique Customers
+
+```python
+total_customers = customer["customer_unique_id"].nunique()
+```
+
+`nunique()` counts the number of different or unique customer IDs.
+
+**Difference:**
+- `len(customer)` counts all rows.
+- `nunique()` counts unique customer IDs.
+
+### F. Count Repeat Customers
+
+```python
+number_of_repeat_customers = len(repeat_customers)
+```
+
+`len()` counts how many customers appear in the filtered repeat-customer list.
+
+### G. Count Records From Repeat Customers
+
+```python
+records_from_repeat_customers = repeat_customers.sum()
+```
+
+`sum()` adds the number of appearances of all repeat customers.
+
+For example:
+
+Customer A = 3  
+Customer C = 2  
+
+Total = 5 records.
+
+**Note:** This is the total number of records belonging to repeat customers, not the number of additional repeat purchases.
+
+### H. Calculate Repeat Customer Rate
+
+```python
+repeat_customer_rate = (
+    number_of_repeat_customers / total_customers
+) * 100
+```
+
+Formula:
+
+**Repeat Customer Rate = (Number of Repeat Customers / Total Unique Customers) × 100**
+
+Example:
+
+If there are 100 unique customers and 20 are repeat customers:
+
+`(20 / 100) × 100 = 20%`
+
+### I. Round the Result
+
+```python
+round(repeat_customer_rate, 2)
+```
+
+`round()` limits the result to two decimal places.
+
+### J. Display Top 10 Repeat Customers
+
+```python
+print(repeat_customers.head(10))
+```
+
+- `head(10)` displays the first 10 rows.
+- `value_counts()` sorts customers by frequency by default, from highest to lowest.
+
+Therefore, this displays the 10 most frequently appearing repeat customers.
+
+---
+
+## 3. Important Pandas Functions Learned
+
+| Function | Purpose |
+|---|---|
+| `len()` | Counts total rows or items |
+| `value_counts()` | Counts how often each value appears |
+| `nunique()` | Counts unique values |
+| `sum()` | Adds values |
+| `round()` | Rounds decimal numbers |
+| `head(10)` | Displays the first 10 rows |
+| Filtering | Selects data that meets a condition |
+
+---
+
+## 4. Business Understanding
+
+Why is this analysis useful?
+
+Businesses want to understand whether customers return to purchase again.
+
+Repeat customers can indicate customer loyalty and retention. Companies can use this information to:
+
+- Understand customer purchasing behaviour.
+- Identify repeat customers.
+- Develop customer retention strategies.
+- Improve customer experience.
+
+**Important limitation:** This dataset counts customer records associated with orders. It does not directly tell us why customers returned or whether they were satisfied.
+
+---
+
+## 5. Interview Questions
+
+**Q1. What is `value_counts()`?**  
+It counts how many times each unique value appears in a column.
+
+**Q2. What is the difference between `count()` and `nunique()`?**  
+`count()` counts non-missing values, while `nunique()` counts distinct values.
+
+**Q3. What is customer retention?**  
+Customer retention means a business successfully keeps customers coming back to purchase again.
+
+**Q4. Why did you use `customer_unique_id` instead of `customer_id`?**  
+Because `customer_unique_id` identifies the same actual customer across multiple records.
+
+**Q5. What does `customer_counts > 1` mean?**  
+It identifies customers whose IDs appear more than once.
+
+---
+
+## 6. One Important Improvement
+
+Your analysis calculates the repeat customer rate correctly using the number of repeat customers divided by total unique customers.
+
+However, remember:
+
+- **Repeat customers:** Customers with more than one record.
+- **Repeat records:** All records belonging to those customers.
+- **Additional repeat purchases:** Records beyond the customer's first record.
+
+These are three different measurements.
+
+---
+
+## 7. Your Practice Questions
+
+Try answering these without looking above:
+
+1. Why do we use `customer_unique_id` instead of `customer_id`?
+2. What is the difference between `len()` and `nunique()`?
+3. What does `value_counts()` return?
+4. Why do we use `customer_counts > 1`?
+5. If 200 customers are unique and 40 are repeat customers, what is the repeat customer rate?
+
+Send your answers. I'll check them before we move to the next analysis.

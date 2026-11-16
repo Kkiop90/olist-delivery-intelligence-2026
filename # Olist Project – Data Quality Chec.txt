@@ -1,0 +1,251 @@
+# Olist Project – Data Quality Check Using Pandas
+
+This is the next step after loading and exploring all nine CSV datasets. You are now checking the **quality and structure of the data** before performing analysis.
+
+## 1. Objective
+
+The objective of this code is to check three important things in every dataset:
+
+1. Missing values
+2. Duplicate records
+3. Data types of columns
+
+This helps us understand whether the data is clean and ready for analysis.
+
+## 2. Explanation of the Code
+
+### A. Import Pandas
+
+```python
+import pandas as pd
+```
+
+- `pandas` is a Python library used for data analysis.
+- `pd` is a short name for pandas.
+- It helps us load, clean, filter and analyse data.
+
+### B. Import Path
+
+```python
+from pathlib import Path as path
+BASE_DIR = path(__file__).resolve().parent.parent
+```
+
+- `Path` helps us work with file and folder locations.
+- `__file__` identifies the current Python file.
+- `.resolve()` gets its full location.
+- `.parent.parent` moves two folders back to the project root.
+
+### C. Locate the Raw Data Folder
+
+```python
+DATA_PATH = BASE_DIR / "data" / "raw"
+datapath = path("data/raw")
+```
+
+- `DATA_PATH` creates the project-root-based location of the raw data folder.
+- `datapath` creates a relative path.
+
+**Important correction:** Use `DATA_PATH` when loading the CSV files. A relative path can fail depending on where VS Code runs the script.
+
+### D. Create a List of CSV Files
+
+```python
+files = [
+    "olist_customers_dataset.csv",
+    "olist_geolocation_dataset.csv",
+    "olist_order_items_dataset.csv",
+    "olist_order_payments_dataset.csv",
+    "olist_order_reviews_dataset.csv",
+    "olist_orders_dataset.csv",
+    "olist_products_dataset.csv",
+    "olist_sellers_dataset.csv",
+    "product_category_name_translation.csv"
+]
+```
+
+A list stores multiple file names in one variable.
+
+### E. Create an Empty Dictionary
+
+```python
+data = {}
+```
+
+A dictionary stores information in key-value pairs.
+
+In this project:
+- **Key:** CSV file name.
+- **Value:** DataFrame containing that CSV's data.
+
+### F. Load and Check Every Dataset
+
+```python
+for filename in files:
+    data[filename] = pd.read_csv(DATA_PATH / filename)
+```
+
+- `for` loops through every file name.
+- `pd.read_csv()` loads the CSV file.
+- `data[filename]` stores the loaded dataset in the dictionary.
+
+Now let's understand the three quality checks.
+
+---
+
+## 3. Missing Values
+
+```python
+print("Missing values:")
+print(data[filename].isnull().sum())
+```
+
+**Meaning:** Checks how many empty or missing values exist in each column.
+
+- `isnull()` identifies missing values.
+- `sum()` counts them column by column.
+
+Example:
+
+| Column | Missing values |
+|---|---:|
+| customer_id | 0 |
+| customer_city | 0 |
+| customer_state | 0 |
+
+If a column shows `0`, it has no missing values.
+
+If it shows `100`, that column has 100 missing values.
+
+**Why is this important?**
+
+Missing data can affect calculations and analysis. We need to investigate missing values before deciding whether to remove or fill them.
+
+## 4. Duplicate Records
+
+```python
+print("Duplicated values:")
+print(data[filename].duplicated().sum())
+```
+
+**Meaning:** Checks how many completely duplicated rows exist in the dataset.
+
+- `duplicated()` identifies repeated rows.
+- `sum()` counts the duplicate rows.
+
+Example:
+
+| Dataset | Duplicate rows |
+|---|---:|
+| Customers | 0 |
+| Orders | 5 |
+| Products | 2 |
+
+**Why is this important?**
+
+Duplicate records can cause incorrect counts and calculations.
+
+Note: This checks completely duplicated rows, not repeated values in individual columns. For example, repeated `order_id` values in an order-items dataset may be valid.
+
+## 5. Data Types
+
+```python
+print("Data types:")
+print(data[filename].dtypes)
+```
+
+**Meaning:** Shows the data type of every column.
+
+Common Pandas data types:
+
+| Data type | Meaning | Example |
+|---|---|---|
+| `int64` | Whole numbers | 100, 250 |
+| `float64` | Decimal numbers | 99.50 |
+| `object` | Usually text | Mumbai |
+| `datetime64` | Date and time | 2026-11-11 |
+| `bool` | True or False | True |
+
+**Why is this important?**
+
+Data types help us understand how to work with each column.
+
+For example:
+- Dates should be converted into datetime format.
+- Prices should be numeric.
+- City names should be treated as text.
+
+---
+
+## 6. Corrected Code
+
+There are two small corrections in your code:
+
+1. Use `DATA_PATH` instead of `datapath`.
+2. Use `"\n"` instead of `"n/"` to print a new line.
+
+```python
+import pandas as pd
+from pathlib import Path as path
+
+BASE_DIR = path(__file__).resolve().parent.parent
+DATA_PATH = BASE_DIR / "data" / "raw"
+
+files = [
+    "olist_customers_dataset.csv",
+    "olist_geolocation_dataset.csv",
+    "olist_order_items_dataset.csv",
+    "olist_order_payments_dataset.csv",
+    "olist_order_reviews_dataset.csv",
+    "olist_orders_dataset.csv",
+    "olist_products_dataset.csv",
+    "olist_sellers_dataset.csv",
+    "product_category_name_translation.csv"
+]
+
+data = {}
+
+for filename in files:
+    data[filename] = pd.read_csv(DATA_PATH / filename)
+
+    print("\n" + "=" * 50)
+    print(f"Dataset: {filename}")
+
+    print("\nMissing values:")
+    print(data[filename].isnull().sum())
+
+    print("\nDuplicated values:")
+    print(data[filename].duplicated().sum())
+
+    print("\nData types:")
+    print(data[filename].dtypes)
+```
+
+## 7. Interview Questions
+
+**Q1. What is a missing value?**  
+A missing value is an empty or unavailable value in a dataset.
+
+**Q2. How do you check missing values in Pandas?**  
+Using `isnull().sum()`.
+
+**Q3. How do you check duplicate rows?**  
+Using `duplicated().sum()`.
+
+**Q4. What does `dtypes` do?**  
+It displays the data type of every column.
+
+**Q5. Why do we perform data quality checks?**  
+To identify missing values, duplicates and incorrect data types before analysis.
+
+---
+
+## 8. Your Next Practical Task
+
+Before moving forward, answer these three questions based on your code:
+
+1. What does `isnull().sum()` do?
+2. What is the difference between `duplicated()` and `isnull()`?
+3. Why do we use `dtypes`?
+
+**Write the answers in your own words.** I'll check them, and then we'll move to the next Python step: cleaning and preparing the Olist data.

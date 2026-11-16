@@ -1,0 +1,272 @@
+# Olist Project – Python Data Loading & Dataset Exploration
+
+This is your first Python file. Its purpose is to **load all nine Olist CSV datasets and understand their structure before starting data analysis.**
+
+You can save these notes in a file named `01_data_loading_and_exploration.md` or in your project documentation.
+
+## 1. Objective
+
+The objective of this script is to:
+
+1. Import the Pandas library.
+2. Locate the project data folder.
+3. Identify all nine CSV files.
+4. Load each CSV file into Python.
+5. Store all datasets in a dictionary.
+6. Display the shape, column names and first five records of each dataset.
+
+## 2. Explanation of the code
+
+### A. Importing libraries
+
+```python
+import pandas as pd
+from pathlib import Path as path
+```
+
+**What does this mean?**
+
+- `pandas`: A Python library used for data analysis and manipulation.
+- `pd`: Short name (alias) for Pandas.
+- `Path`: A Python tool used to work with file and folder paths.
+- `as path`: Gives `Path` a shorter name.
+
+**Why do we use Pandas?**
+
+Because our project contains CSV files, and Pandas makes it easy to read and analyse tabular data.
+
+### B. Locating the project directory
+
+```python
+BASE_DIR = path(__file__).resolve().parent.parent
+```
+
+Let's understand each part:
+
+| Code | Meaning |
+|---|---|
+| `__file__` | Current Python file location |
+| `resolve()` | Gets the complete file path |
+| `parent` | Goes one folder up |
+| `parent.parent` | Goes two folders up |
+
+**Why do we use it?**
+
+Our Python script is inside the `Notbooks` folder. We need to reach the main project folder.
+
+### C. Locating raw data
+
+```python
+DATA_PATH = BASE_DIR / "data" / "raw"
+```
+
+This creates the path to the raw data folder.
+
+For example:
+
+`olist_delivery_intelligence/data/raw`
+
+The `/` operator joins folder names to create a path.
+
+### D. Creating a list of CSV files
+
+```python
+files = [
+    "olist_customers_dataset.csv",
+    "olist_geolocation_dataset.csv",
+    "olist_order_items_dataset.csv",
+    "olist_order_payments_dataset.csv",
+    "olist_order_reviews_dataset.csv",
+    "olist_orders_dataset.csv",
+    "olist_products_dataset.csv",
+    "olist_sellers_dataset.csv",
+    "product_category_name_translation.csv"
+]
+```
+
+**What is a list?**
+
+A list stores multiple values in one variable.
+
+Here, we store the names of all nine CSV files.
+
+### E. Creating an empty dictionary
+
+```python
+data = {}
+```
+
+**What is a dictionary?**
+
+A dictionary stores information in key-value pairs.
+
+Example:
+
+```python
+student = {
+    "name": "Krish",
+    "age": 20
+}
+```
+
+In our project:
+- Key = CSV filename.
+- Value = Loaded DataFrame.
+
+This allows us to access individual datasets using their filenames.
+
+### F. Loading all datasets using a loop
+
+```python
+for filename in files:
+    data[filename] = pd.read_csv(datapath / filename)
+```
+
+Let's understand this:
+
+| Code | Meaning |
+|---|---|
+| `for` | Repeats an action |
+| `filename` | Current filename |
+| `in files` | Takes filenames from the list |
+| `pd.read_csv()` | Reads a CSV file |
+| `data[filename]` | Stores the dataset in the dictionary |
+
+**Why use a loop?**
+
+Instead of writing nine separate `read_csv()` commands, we use one loop to load all nine files automatically.
+
+### G. Checking dataset information
+
+```python
+print("Dataset:", filename)
+print("Shape:", data[filename].shape)
+print("Columns:", data[filename].columns.tolist())
+print(data[filename].head())
+```
+
+We use four commands:
+
+| Command | Purpose |
+|---|---|
+| `print()` | Displays information |
+| `.shape` | Shows rows and columns |
+| `.columns.tolist()` | Displays column names as a list |
+| `.head()` | Displays first five records |
+
+### H. Separating dataset outputs
+
+```python
+print("\n" + "=" * 50)
+```
+
+This prints a separator line between datasets.
+
+It makes the output easier to read.
+
+---
+
+## 3. Important Python concepts learned
+
+| Concept | What it does |
+|---|---|
+| Import | Brings a library into Python |
+| Variable | Stores information |
+| List | Stores multiple values |
+| Dictionary | Stores key-value pairs |
+| Loop | Repeats instructions |
+| Function | Performs a particular task |
+| File path | Identifies a file's location |
+| DataFrame | Stores tabular data |
+| `read_csv()` | Loads CSV data |
+| `shape` | Checks dataset dimensions |
+| `head()` | Previews records |
+
+## 4. Dataset exploration results
+
+Your nine datasets have the following dimensions:
+
+| Dataset | Rows | Columns |
+|---|---:|---:|
+| Customers | 99,441 | 5 |
+| Geolocation | 1,000,163 | 5 |
+| Order Items | 112,650 | 7 |
+| Payments | 103,886 | 5 |
+| Reviews | 99,224 | 7 |
+| Orders | 99,441 | 8 |
+| Products | 32,951 | 9 |
+| Sellers | 3,095 | 4 |
+| Category Translation | 71 | 2 |
+
+## 5. Interview questions and answers
+
+**Q1. What is Pandas?**
+
+Pandas is a Python library used for data manipulation, cleaning and analysis.
+
+**Q2. What is `read_csv()`?**
+
+It is a Pandas function used to read CSV files and convert them into DataFrames.
+
+**Q3. Why did you use a dictionary?**
+
+To store multiple datasets using their filenames as keys.
+
+**Q4. Why did you use a loop?**
+
+To load all nine datasets automatically instead of writing the same code repeatedly.
+
+**Q5. What is the difference between a list and a dictionary?**
+
+A list stores values in sequence, while a dictionary stores values using key-value pairs.
+
+**Q6. What is the purpose of `.shape`?**
+
+It returns the number of rows and columns in a DataFrame.
+
+**Q7. Why do we explore data before analysing it?**
+
+To understand the dataset structure, columns, dimensions and available information before performing analysis.
+
+---
+
+## 6. Small code correction
+
+You created:
+
+```python
+DATA_PATH = BASE_DIR / "data" / "raw"
+datapath = path("data/raw")
+```
+
+You should use `DATA_PATH` in your loop instead of `datapath`.
+
+Why? Because `DATA_PATH` uses the project location, while `datapath` is a relative path that depends on the current working directory.
+
+Use:
+
+```python
+data[filename] = pd.read_csv(DATA_PATH / filename)
+```
+
+Also, your separator can be written as:
+
+```python
+print("\n" + "=" * 50)
+```
+
+---
+
+### Final project documentation
+
+**File name:** `01_data_loading_and_exploration.py`
+
+**Purpose:** Load and explore all nine Olist datasets.
+
+**Outcome:** Successfully loaded the datasets into Pandas DataFrames and examined their dimensions, column names and sample records.
+
+**Business importance:** Before analysing business performance, we need to understand what data is available and how it is structured.
+
+---
+
+**My recommendation:** Keep this summary as your first Python revision note. We'll create similar short documentation for each major analysis file so you can explain your entire project confidently in interviews.
